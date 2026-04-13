@@ -1,0 +1,73 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local event = ReplicatedStorage:WaitForChild("ServerEvent")
+
+-- UI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ServerInfoUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 450, 0, 350)
+frame.Position = UDim2.new(0, 10, 0, 10)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.Parent = screenGui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "📡 Server Info Feed"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+title.Parent = frame
+
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, 0, 1, -40)
+scroll.Position = UDim2.new(0, 0, 0, 40)
+scroll.CanvasSize = UDim2.new(0, 0, 10, 0)
+scroll.ScrollBarThickness = 8
+scroll.BackgroundTransparency = 1
+scroll.Parent = frame
+
+local layout = Instance.new("UIListLayout")
+layout.Parent = scroll
+layout.Padding = UDim.new(0, 5)
+
+-- Function to add clean entry
+local function addEntry(text)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -10, 0, 60)
+    label.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.TextWrapped = true
+    label.Parent = scroll
+
+    label.Text = text
+end
+
+-- Receive server data
+event.OnClientEvent:Connect(function(data)
+
+    local output = ""
+
+    if typeof(data) == "table" then
+        if data.egg and data.pet and data.weight then
+            output = "🥚 " .. data.egg ..
+                     " | 🐾 " .. data.pet ..
+                     " | ⚖️ " .. data.weight .. " KG"
+        else
+            for k, v in pairs(data) do
+                output ..= tostring(k) .. ": " .. tostring(v) .. "\n"
+            end
+        end
+    else
+        output = tostring(data)
+    end
+
+    addEntry(output)
+end)
