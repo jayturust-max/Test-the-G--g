@@ -1,0 +1,60 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+
+-- ADMIN CHECK
+local ADMINS = {2707361146}
+
+local isAdmin = false
+for _, id in ipairs(ADMINS) do
+    if player.UserId == id then
+        isAdmin = true
+        break
+    end
+end
+
+if not isAdmin then return end
+
+-- UI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "EggScrollUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 450, 0, 350)
+frame.Position = UDim2.new(0, 10, 0, 10)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.Parent = screenGui
+
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, 0, 1, 0)
+scroll.CanvasSize = UDim2.new(0, 0, 5, 0)
+scroll.ScrollBarThickness = 10
+scroll.BackgroundTransparency = 1
+scroll.Parent = frame
+
+local layout = Instance.new("UIListLayout")
+layout.Parent = scroll
+layout.Padding = UDim.new(0, 5)
+
+local event = ReplicatedStorage:WaitForChild("EggLogEvent")
+
+event.OnClientEvent:Connect(function(data)
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -10, 0, 60)
+    label.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.Parent = scroll
+
+    label.Text = string.format(
+        "🥚 %s | 🐾 %s | ⚖️ %d KG | 👤 %s",
+        data.egg,
+        data.pet,
+        data.weight,
+        data.player
+    )
+end)
