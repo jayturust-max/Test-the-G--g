@@ -1,0 +1,98 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local event = ReplicatedStorage:WaitForChild("ServerEvent")
+
+-- UI ROOT (always visible)
+local gui = Instance.new("ScreenGui")
+gui.Name = "LiveServerMonitor"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 500, 0, 400)
+frame.Position = UDim2.new(0.05, 0, 0.2, 0)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BorderSizePixel = 2
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+title.Text = "📡 LIVE SERVER MONITOR + KEYWORD FINDER"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+title.Parent = frame
+
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, 0, 1, -40)
+scroll.Position = UDim2.new(0, 0, 0, 40)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 10
+scroll.Parent = frame
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 5)
+layout.Parent = scroll
+
+-- KEYWORDS TO SEARCH FOR
+local keywords = {
+    egg = Color3.fromRGB(0, 255, 0),
+    pet = Color3.fromRGB(0, 200, 255),
+    weight = Color3.fromRGB(255, 200, 0),
+    admin = Color3.fromRGB(255, 0, 0),
+    error = Color3.fromRGB(255, 0, 0),
+}
+
+local function highlight(text)
+    local lower = string.lower(text)
+
+    for word, _ in pairs(keywords) do
+        if string.find(lower, word) then
+            text = "🔥 " .. text
+            break
+        end
+    end
+
+    return text
+end
+
+local function addLine(text)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -10, 0, 60)
+    label.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.GothamBold
+    label.TextScaled = true
+    label.TextWrapped = true
+    label.Parent = scroll
+
+    label.Text = highlight(text)
+
+    task.wait()
+    scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
+    scroll.CanvasPosition = Vector2.new(0, layout.AbsoluteContentSize.Y)
+end
+
+-- LIVE SERVER LISTENER
+event.OnClientEvent:Connect(function(data)
+
+    local output = ""
+
+    if typeof(data) == "table" then
+        for k, v in pairs(data) do
+            output ..= tostring(k) .. ": " .. tostring(v) .. "\n"
+        end
+    else
+        output = tostring(data)
+    end
+
+    addLine(output)
+end)
+
+-- TEST LINE (so you KNOW UI works instantly)
+addLine("System Online ✔ Waiting for server messages...")
