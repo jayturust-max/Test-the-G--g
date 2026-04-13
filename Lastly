@@ -1,0 +1,149 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- ================= UI =================
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "UniversalInspector"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 700, 0, 450)
+frame.Position = UDim2.new(0.5, -350, 0.5, -225)
+frame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+frame.BorderSizePixel = 0
+frame.Parent = gui
+
+local top = Instance.new("Frame")
+top.Size = UDim2.new(1, 0, 0, 40)
+top.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+top.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(0.6, 0, 1, 0)
+title.BackgroundTransparency = 1
+title.Text = "UNIVERSAL CLIENT INSPECTOR"
+title.Font = Enum.Font.Code
+title.TextSize = 14
+title.TextColor3 = Color3.fromRGB(0, 255, 170)
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Position = UDim2.new(0, 10, 0, 0)
+title.Parent = top
+
+local search = Instance.new("TextBox")
+search.Size = UDim2.new(0.35, 0, 0.7, 0)
+search.Position = UDim2.new(0.62, 0, 0.15, 0)
+search.PlaceholderText = "Search keywords..."
+search.Text = ""
+search.Font = Enum.Font.Code
+search.TextSize = 14
+search.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+search.TextColor3 = Color3.fromRGB(255, 255, 255)
+search.Parent = top
+
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, -20, 1, -60)
+scroll.Position = UDim2.new(0, 10, 0, 50)
+scroll.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+scroll.ScrollBarThickness = 8
+scroll.Parent = frame
+
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(1, 0, 0, 0)
+label.BackgroundTransparency = 1
+label.Font = Enum.Font.Code
+label.TextSize = 14
+label.TextColor3 = Color3.fromRGB(0, 255, 120)
+label.TextXAlignment = Enum.TextXAlignment.Left
+label.TextYAlignment = Enum.TextYAlignment.Top
+label.TextWrapped = false
+label.Parent = scroll
+
+-- ================= DATA STORAGE =================
+
+local logs = {}
+
+local function render(filter)
+	local output = ""
+
+	for _, line in ipairs(logs) do
+		if filter == "" or string.find(string.lower(line), string.lower(filter)) then
+			output ..= line .. "\n"
+		end
+	end
+
+	label.Text = output
+	label.Size = UDim2.new(1, 0, 0, label.TextBounds.Y + 20)
+	scroll.CanvasSize = UDim2.new(0, 0, 0, label.TextBounds.Y + 20)
+end
+
+local function addLog(msgType, content)
+	local line = "[" .. os.date("%X") .. "] "
+
+	if content then
+		line ..= tostring(msgType) .. " → " .. tostring(content)
+	else
+		line ..= tostring(msgType)
+	end
+
+	table.insert(logs, line)
+	render(search.Text)
+end
+
+-- ================= UNIVERSAL REMOTE HOOK =================
+
+local function hookRemote(obj)
+	if obj:IsA("RemoteEvent") then
+		obj.OnClientEvent:Connect(function(...)
+			local args = {...}
+
+			if #args == 1 then
+				addLog(obj.Name, tostring(args[1]))
+			else
+				addLog(obj.Name, table.concat(args, " | "))
+			end
+		end)
+	end
+end
+
+for _, v in ipairs(ReplicatedStorage:GetDescendants()) do
+	hookRemote(v)
+end
+
+ReplicatedStorage.DescendantAdded:Connect(hookRemote)
+
+-- ================= OPTIONAL: ATTRIBUTE TRACKING =================
+
+local function trackAttributes(obj)
+	if obj:IsA("Instance") then
+		for _, attrName in ipairs(obj:GetAttributes()) do
+			addLog("ATTRIBUTE", obj.Name .. "." .. attrName .. " = " .. tostring(obj:GetAttribute(attrName)))
+		end
+	end
+end
+
+-- scan workspace safely (replicated only)
+for _, v in ipairs(workspace:GetDescendants()) do
+	pcall(trackAttributes, v)
+end
+
+workspace.DescendantAdded:Connect(function(obj)
+	task.wait(0.5)
+	pcall(trackAttributes, obj)
+end)
+
+-- ================= SEARCH =================
+
+search:GetPropertyChangedSignal("Text"):Connect(function()
+	render(search.Text)
+end)
+
+-- INIT
+addLog("SYSTEM", "Inspector initialized")
+addLog("SYSTEM", "Waiting for replicated data...")
+
+render("")
