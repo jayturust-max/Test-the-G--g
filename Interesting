@@ -1,0 +1,97 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local event = ReplicatedStorage:WaitForChild("ServerEvent")
+
+-- UI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "EggTrackerUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 450, 0, 350)
+frame.Position = UDim2.new(0.1, 0, 0.1, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.Active = true
+frame.Draggable = true -- makes it movable
+frame.Parent = screenGui
+
+-- TITLE BAR
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+title.Text = "🥚 Egg Tracker Dashboard"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+title.Parent = frame
+
+-- SCROLL AREA
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, 0, 1, -40)
+scroll.Position = UDim2.new(0, 0, 0, 40)
+scroll.CanvasSize = UDim2.new(0, 0, 10, 0)
+scroll.ScrollBarThickness = 8
+scroll.BackgroundTransparency = 1
+scroll.Parent = frame
+
+local layout = Instance.new("UIListLayout")
+layout.Parent = scroll
+layout.Padding = UDim.new(0, 5)
+
+-- RESIZE HANDLE
+local resize = Instance.new("Frame")
+resize.Size = UDim2.new(0, 20, 0, 20)
+resize.Position = UDim2.new(1, -20, 1, -20)
+resize.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+resize.Parent = frame
+
+resize.Active = true
+resize.Draggable = true
+
+resize.MouseDrag:Connect(function()
+    local mouse = player:GetMouse()
+    frame.Size = UDim2.new(0, math.max(300, mouse.X - frame.AbsolutePosition.X), 0, math.max(200, mouse.Y - frame.AbsolutePosition.Y))
+end)
+
+-- STORE ONLY ACTIVE EGGS
+local activeEggs = {}
+
+local function updateEntry(key, text)
+    if activeEggs[key] then
+        activeEggs[key].Text = text
+        return
+    end
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -10, 0, 60)
+    label.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.Parent = scroll
+
+    activeEggs[key] = label
+    label.Text = text
+end
+
+-- SERVER UPDATES UI
+event.OnClientEvent:Connect(function(data)
+
+    -- Only show REAL egg instances
+    if not data or not data.egg then return end
+
+    local text = "🥚 " .. data.egg
+
+    if data.pet then
+        text ..= " | 🐾 " .. data.pet
+    end
+
+    if data.weight then
+        text ..= " | ⚖️ " .. data.weight .. " KG"
+    end
+
+    -- key = egg name (so each egg updates instead of duplicating)
+    updateEntry(data.egg, text)
+end)
