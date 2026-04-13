@@ -1,0 +1,31 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local event = ReplicatedStorage:WaitForChild("EggReveal")
+
+event.OnClientEvent:Connect(function(egg, petName, weight)
+
+    -- Check if it already exists (prevents duplicates)
+    local existing = egg:FindFirstChild("EggInfoBillboard")
+    if existing then
+        existing:Destroy()
+    end
+
+    -- Create BillboardGui
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "EggInfoBillboard"
+    billboard.Size = UDim2.new(0, 220, 0, 80)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.Adornee = egg
+    billboard.AlwaysOnTop = true
+    billboard.Parent = egg
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextStrokeTransparency = 0.3
+    label.Parent = billboard
+
+    label.Text = "🐾 " .. petName .. "\n⚖️ " .. weight .. " KG"
+end)
