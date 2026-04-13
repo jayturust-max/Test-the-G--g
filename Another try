@@ -1,0 +1,128 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- ================= UI =================
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AI_CodeViewer"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 650, 0, 420)
+mainFrame.Position = UDim2.new(0.5, -325, 0.5, -210)
+mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 40)
+topBar.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+topBar.BorderSizePixel = 0
+topBar.Parent = mainFrame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(0.5, 0, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "AI Code Inspector (Client Side)"
+title.TextColor3 = Color3.fromRGB(0, 255, 170)
+title.Font = Enum.Font.Code
+title.TextSize = 14
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = topBar
+
+local searchBox = Instance.new("TextBox")
+searchBox.Size = UDim2.new(0.45, -10, 0, 28)
+searchBox.Position = UDim2.new(0.55, 0, 0.15, 0)
+searchBox.PlaceholderText = "Search..."
+searchBox.Text = ""
+searchBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+searchBox.Font = Enum.Font.Code
+searchBox.TextSize = 14
+searchBox.Parent = topBar
+
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -20, 1, -60)
+scrollFrame.Position = UDim2.new(0, 10, 0, 50)
+scrollFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 8
+scrollFrame.Parent = mainFrame
+
+local codeLabel = Instance.new("TextLabel")
+codeLabel.Size = UDim2.new(1, 0, 0, 0)
+codeLabel.BackgroundTransparency = 1
+codeLabel.TextXAlignment = Enum.TextXAlignment.Left
+codeLabel.TextYAlignment = Enum.TextYAlignment.Top
+codeLabel.Font = Enum.Font.Code
+codeLabel.TextSize = 14
+codeLabel.TextColor3 = Color3.fromRGB(0, 255, 120)
+codeLabel.TextWrapped = false
+codeLabel.Parent = scrollFrame
+
+-- ================= SAMPLE "SERVER CODE" =================
+
+local codeData = [[
+-- AI SYSTEM CORE
+function InitializeAI()
+    print("AI Loaded Successfully")
+
+    local memory = {}
+    local state = "ACTIVE"
+
+    for i = 1, 5 do
+        memory[i] = "Data packet " .. i
+    end
+
+    return memory
+end
+
+-- PLAYER HANDLER
+local Players = game:GetService("Players")
+
+Players.PlayerAdded:Connect(function(plr)
+    print("Welcome:", plr.Name)
+end)
+
+-- GAME LOOP
+while true do
+    task.wait(2)
+    print("System running...")
+end
+
+-- DEBUG FLAGS
+DEBUG_MODE = true
+MAX_ENTITIES = 250
+]]
+
+-- ================= FUNCTION =================
+
+local function updateDisplay(filter)
+    local output = ""
+
+    for line in codeData:gmatch("[^\n]+") do
+        if filter == "" or filter == nil then
+            output ..= line .. "\n"
+        else
+            if string.find(string.lower(line), string.lower(filter)) then
+                output ..= "▶ " .. line .. "\n"
+            else
+                output ..= line .. "\n"
+            end
+        end
+    end
+
+    codeLabel.Text = output
+    codeLabel.Size = UDim2.new(1, 0, 0, codeLabel.TextBounds.Y + 20)
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, codeLabel.TextBounds.Y + 20)
+end
+
+-- ================= SEARCH =================
+
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    updateDisplay(searchBox.Text)
+end)
+
+-- INIT
+updateDisplay("")
