@@ -1,0 +1,92 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+
+-- Create RemoteEvent safely
+local event = ReplicatedStorage:FindFirstChild("ServerEvent")
+
+-- UI ROOT
+local gui = Instance.new("ScreenGui")
+gui.Name = "LiveEggDashboard"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- MAIN FRAME
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 450, 0, 350)
+frame.Position = UDim2.new(0.05, 0, 0.2, 0)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BorderSizePixel = 2
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+-- TITLE
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+title.Text = "🥚 LIVE EGG DASHBOARD"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+title.Parent = frame
+
+-- SCROLL AREA
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, 0, 1, -40)
+scroll.Position = UDim2.new(0, 0, 0, 40)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 10
+scroll.CanvasSize = UDim2.new(0, 0, 5, 0)
+scroll.Parent = frame
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 5)
+layout.Parent = scroll
+
+-- FUNCTION TO ADD LINE
+local function addLine(text)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -10, 0, 60)
+    label.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.GothamBold
+    label.TextScaled = true
+    label.TextWrapped = true
+    label.Parent = scroll
+
+    label.Text = text
+end
+
+-- 🔥 MAKE UI ALWAYS VISIBLE (TEST LINE)
+addLine("System Online... Waiting for eggs 🥚")
+
+-- LIVE SERVER LISTENER
+if event then
+    event.OnClientEvent:Connect(function(data)
+
+        if typeof(data) ~= "table" or not data.egg then
+            return
+        end
+
+        local text = "🥚 " .. data.egg
+
+        if data.pet then
+            text ..= " | 🐾 " .. data.pet
+        end
+
+        if data.weight then
+            text ..= " | ⚖️ " .. data.weight .. " KG"
+        end
+
+        addLine(text)
+
+        -- auto-scroll to bottom
+        task.wait()
+        scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
+        scroll.CanvasPosition = Vector2.new(0, layout.AbsoluteContentSize.Y)
+    end)
+else
+    addLine("❌ ServerEvent not found in ReplicatedStorage")
+end
