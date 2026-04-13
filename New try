@@ -1,119 +1,97 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+
 local player = Players.LocalPlayer
+local event = ReplicatedStorage:WaitForChild("ServerEvent")
 
--- ================= UI =================
-
-local gui = Instance.new("ScreenGui")
-gui.Name = "LiveAIInspector"
-gui.Parent = player:WaitForChild("PlayerGui")
+-- UI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "EggTrackerUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 700, 0, 450)
-frame.Position = UDim2.new(0.5, -350, 0.5, -225)
-frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-frame.BorderSizePixel = 0
-frame.Parent = gui
+frame.Size = UDim2.new(0, 450, 0, 350)
+frame.Position = UDim2.new(0.1, 0, 0.1, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.Active = true
+frame.Draggable = true -- makes it movable
+frame.Parent = screenGui
 
-local top = Instance.new("Frame")
-top.Size = UDim2.new(1, 0, 0, 40)
-top.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-top.Parent = frame
-
+-- TITLE BAR
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(0.5, 0, 1, 0)
-title.BackgroundTransparency = 1
-title.Text = "LIVE SERVER AI INSPECTOR"
-title.Font = Enum.Font.Code
-title.TextSize = 14
-title.TextColor3 = Color3.fromRGB(0, 255, 150)
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Position = UDim2.new(0, 10, 0, 0)
-title.Parent = top
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+title.Text = "🥚 Egg Tracker Dashboard"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+title.Parent = frame
 
-local search = Instance.new("TextBox")
-search.Size = UDim2.new(0.45, 0, 0.7, 0)
-search.Position = UDim2.new(0.55, 0, 0.15, 0)
-search.PlaceholderText = "Search live data..."
-search.Text = ""
-search.Font = Enum.Font.Code
-search.TextSize = 14
-search.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-search.TextColor3 = Color3.fromRGB(255, 255, 255)
-search.Parent = top
-
+-- SCROLL AREA
 local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1, -20, 1, -60)
-scroll.Position = UDim2.new(0, 10, 0, 50)
-scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+scroll.Size = UDim2.new(1, 0, 1, -40)
+scroll.Position = UDim2.new(0, 0, 0, 40)
+scroll.CanvasSize = UDim2.new(0, 0, 10, 0)
 scroll.ScrollBarThickness = 8
+scroll.BackgroundTransparency = 1
 scroll.Parent = frame
 
-local list = Instance.new("TextLabel")
-list.Size = UDim2.new(1, 0, 0, 0)
-list.BackgroundTransparency = 1
-list.Font = Enum.Font.Code
-list.TextSize = 14
-list.TextColor3 = Color3.fromRGB(0, 255, 120)
-list.TextXAlignment = Enum.TextXAlignment.Left
-list.TextYAlignment = Enum.TextYAlignment.Top
-list.TextWrapped = false
-list.Parent = scroll
+local layout = Instance.new("UIListLayout")
+layout.Parent = scroll
+layout.Padding = UDim.new(0, 5)
 
--- ================= LIVE DATA STORAGE =================
+-- RESIZE HANDLE
+local resize = Instance.new("Frame")
+resize.Size = UDim2.new(0, 20, 0, 20)
+resize.Position = UDim2.new(1, -20, 1, -20)
+resize.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+resize.Parent = frame
 
-local logs = {}
+resize.Active = true
+resize.Draggable = true
 
-local function render(filter)
-    local output = ""
+resize.MouseDrag:Connect(function()
+    local mouse = player:GetMouse()
+    frame.Size = UDim2.new(0, math.max(300, mouse.X - frame.AbsolutePosition.X), 0, math.max(200, mouse.Y - frame.AbsolutePosition.Y))
+end)
 
-    for _, entry in ipairs(logs) do
-        if filter == "" or string.find(string.lower(entry), string.lower(filter)) then
-            output ..= entry .. "\n"
-        end
+-- STORE ONLY ACTIVE EGGS
+local activeEggs = {}
+
+local function updateEntry(key, text)
+    if activeEggs[key] then
+        activeEggs[key].Text = text
+        return
     end
 
-    list.Text = output
-    list.Size = UDim2.new(1, 0, 0, list.TextBounds.Y + 20)
-    scroll.CanvasSize = UDim2.new(0, 0, 0, list.TextBounds.Y + 20)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -10, 0, 60)
+    label.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.Parent = scroll
+
+    activeEggs[key] = label
+    label.Text = text
 end
 
--- ================= SIMULATED LIVE SERVER FEED =================
--- (Replace this later with real server RemoteEvent if you want)
+-- SERVER UPDATES UI
+event.OnClientEvent:Connect(function(data)
 
-local function pushLog(text)
-    table.insert(logs, "[" .. os.date("%X") .. "] " .. text)
-    render(search.Text)
-end
+    -- Only show REAL egg instances
+    if not data or not data.egg then return end
 
--- fake live updates
-task.spawn(function()
-    local eggs = {
-        "Dragon Egg → Fire Dragon (Legendary)",
-        "Ocean Egg → Shark (Rare)",
-        "Void Egg → Shadow Serpent (Mythic)",
-        "Starter Egg → Dog (Common)"
-    }
+    local text = "🥚 " .. data.egg
 
-    while true do
-        task.wait(2)
-
-        local msg = eggs[math.random(1, #eggs)]
-        pushLog("EGG SYSTEM UPDATE: " .. msg)
+    if data.pet then
+        text ..= " | 🐾 " .. data.pet
     end
-end)
 
-task.spawn(function()
-    while true do
-        task.wait(5)
-        pushLog("SERVER STATUS: All systems stable")
+    if data.weight then
+        text ..= " | ⚖️ " .. data.weight .. " KG"
     end
+
+    -- key = egg name (so each egg updates instead of duplicating)
+    updateEntry(data.egg, text)
 end)
-
--- ================= SEARCH =================
-
-search:GetPropertyChangedSignal("Text"):Connect(function()
-    render(search.Text)
-end)
-
--- INIT
-render("")
